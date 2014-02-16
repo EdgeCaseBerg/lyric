@@ -107,6 +107,24 @@ def record():
     r = add_silence(r, 0.5)
     return sample_width, r
 
+def playFile(path):
+    f = wave.open(path,"rb")  
+    p = pyaudio.PyAudio()  
+    stream = p.open(format = p.get_format_from_width(f.getsampwidth()),  
+                    channels = f.getnchannels(),  
+                    rate = f.getframerate(),  
+                    output = True)  
+    data = f.readframes(CHUNK_SIZE)  
+
+    #actually playing
+    while data != '':  
+        stream.write(data)  
+        data = f.readframes(CHUNK_SIZE)  
+
+    stream.stop_stream()  
+    stream.close()  
+    p.terminate()  
+
 def record_to_file(path):
     "Records from the microphone and outputs the resulting data to 'path'"
     sample_width, data = record()

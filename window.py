@@ -9,10 +9,6 @@ from array import array
 import record
 import os
 
-def testShit():
-	#record.record_to_file('demo.wav')
-	pass
-
 def recordButton():
 	recButton = QtGui.QPushButton("Record")
 	recButton.setToolTip('Record an audio segment for this Line')
@@ -23,24 +19,67 @@ def clearButton():
 	clrButton.setToolTip('Remove audio segment from this line')
 	return clrButton
 
-class LineEntry():
+def playButton():
+	playButton = QtGui.QPushButton("Play")
+	playButton.setToolTip('Play recorded Audio for this line')
+	return playButton
+
+class LineEntry(object):
 	"""Line Entry is a simple panel with a text form and a set of buttons
 	   The buttons provide an interface to record a sound clip for that
 	   line's text. Remove the sound clip, or save it out to a file by 
 	   itself.
 	"""
-	def __init__(self, rec, clr, edt):
-		self.sample_width = 0
-		self.sound_data = array('h')
+	def __init__(self, rec, clr, edt, ply, parent):
 		self.recButton = rec
 		self.clrButton = clr 
+		self.playButton = ply
 		self.textEdit = edt
 		self.initUI()
+		self.hash = self.__hash__()
+		self.parentRef = parent
 
 	def initUI(self):
 		#Implement handlers
-		self.recButton.clicked.connect(testShit)
-		self.clrButton.clicked.connect(testShit)
+		self.recButton.clicked.connect(self.recordSoundData)
+		self.clrButton.clicked.connect(self.removeSoundData)
+		self.playButton.clicked.connect(self.playSoundData)
+
+	def removeSoundData(self):
+		try:
+			os.remove("/tmp/%s.lyric" % self.hash)
+		except Exception, e:
+			self.parentRef.displayStatus("Could not remove %s" % self.hash)
+
+	def recordSoundData(self):
+		record.record_to_file("/tmp/%s.lyric" % self.hash)
+
+	def playSoundData(self):
+		try:
+			record.playFile("/tmp/%s.lyric" % self.hash)
+		except Exception, e:
+			self.parentRef.displayStatus("Could not play wav %s" % self.hash)
+	
+	def getSoundData(self):
+		data = []
+		try:
+			with open("/tmp/%s.lyric" % self.hash,"rb") as f:
+				byte = f.read(1)
+				while byte:
+					byte = f.read(1)
+					data.append(data)
+			return data
+		except Exception, e:
+			self.parentRef.displayStatus("Could not get wav %s" % self.hash)
+
+
+	def setSoundData(self, data):
+		with open("/tmp/%s.lyric" % self.hash, "wb") as f:
+			for b in data:
+				f.write(b)
+
+
+
 
 	def getText(self):
 		return "%s" % self.textEdit.text() #return the text as a python string
@@ -133,15 +172,17 @@ class LyricWindow(QtGui.QMainWindow):
 			entryField = QtGui.QLineEdit()
 			recButton = recordButton()
 			clrButton = clearButton()
+			plyButton = playButton()
 			
 			hbox = QtGui.QHBoxLayout()
 			hbox.addStretch(1)
 			hbox.addWidget(entryField)
 			hbox.addWidget(recButton)
+			hbox.addWidget(plyButton)
 			hbox.addWidget(clrButton)	
 			vbox.addStretch(1)
 
-			entry = LineEntry(recButton,clrButton,entryField)
+			entry = LineEntry(recButton,clrButton,entryField,plyButton, self)
 			vbox.addLayout(hbox)
 			self.lines.append(entry)
 		
