@@ -61,22 +61,19 @@ class LineEntry(object):
 			self.parentRef.displayStatus("Could not play wav %s" % self.hash)
 	
 	def getSoundData(self):
-		data = []
+		data = ""
 		try:
 			with open("/tmp/%s.lyric" % self.hash,"rb") as f:
-				byte = f.read(1)
-				while byte:
-					byte = f.read(1)
-					data.append(data)
+				data = f.read()
 			return data
 		except Exception, e:
 			self.parentRef.displayStatus("Could not get wav %s" % self.hash)
+		return ""
 
 
 	def setSoundData(self, data):
 		with open("/tmp/%s.lyric" % self.hash, "wb") as f:
-			for b in data:
-				f.write(b)
+			f.write(data)
 
 
 
@@ -84,8 +81,6 @@ class LineEntry(object):
 	def getText(self):
 		return "%s" % self.textEdit.text() #return the text as a python string
 
-	def getSoundData(self):
-		return self.sample_width, self.sound_data
 
 class ProgressWindow(QtGui.QMainWindow):
 	"""Bell and whistle for reading a file in / saving / etc"""
@@ -237,26 +232,51 @@ class LyricWindow(QtGui.QMainWindow):
 				self.filename = f.name
 				self.pbar.show()
 				val = 0
-				for line in f:
-					#implement file load / creation here and increment val
+				data = f.read()
+				datum = data.split('BREAKLYRIC')
+				for line in datum:
+					lineData = line.split('\n', 1)
+					lineText = lineData[0]
+					if len(lineData) > 1:
+						soundData = lineData[1].decode('hex')
+
+					#Implement adding to self.lines and clearing out the old ones
+					if len(lineData) < 2:
+						pass #this is where the newline at the end of the file possibly is so ignore it
+
 					val = val + 1
 					self.pbar.setValue(val)
 
 			self.pbar.setValue(100)
 			self.pbar.hide()
 
+	def createFileData(self):
+		"""
+		<Line>\n<Data>BREAKLYRIC
+		"""
+		filedata = []
+		for line in self.lines:
+			txt = line.getText()
+			data = line.getSoundData().encode('hex')
+			filedata.append( "%s\n%sBREAKLYRIC" % (txt,data) )
+		print filedata
+		return filedata
+
+
 	def saveAsFile(self):
 		filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', os.path.expanduser('~'))
-		f = open(filename, 'w')
-		filedata = ""
-		f.write(filedata)
+		f = open(filename, 'wb')
+		filedata = self.createFileData()
+		for data in filedata:
+			f.write(data)
 		f.close()
 
 	def saveFile(self):
 		if(self.filename != ""):
-			f = open(self.filename, 'w')
-			filedata = ""
-			f.write(filedata)
+			f = open(self.filename, 'wb')
+			filedata = self.createFileData()
+			for data in filedata:
+				f.write(data)
 			f.close()
 
 
